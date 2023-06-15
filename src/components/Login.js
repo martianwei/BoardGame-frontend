@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Box, TextField, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useInfo } from '../containers/hooks/useInfo';
+import bcrypt from 'bcryptjs';
 
 
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
+    const { login } = useInfo();
     const handleUsernameChange = (event) => {
         setUsername(event.target.value);
     };
@@ -15,10 +18,18 @@ const Login = () => {
         setPassword(event.target.value);
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
-        // 在這裡處理登入邏輯
 
+        // Hash the password before sending it to the backend
+        const hashedPassword = await bcrypt.hash(password, 10);
+        try {
+            const response = login(username, hashedPassword);
+            console.log(response);
+        }
+        catch (err) {
+            console.log(err);
+        }
         // 登入成功後進行路由導航
         navigate('/welcome');
     };

@@ -1,7 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Grid, Box } from '@mui/material';
-
+import { useNavigate } from 'react-router-dom';
+import { useInfo } from '../containers/hooks/useInfo';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 const GameboardPage = () => {
+    const { logged_in } = useInfo();
+    const navigate = useNavigate();
+
+    const handleSnackbarClose = () => {
+        console.log('close');
+        navigate('/login'); // 如果未登入，將用戶重定向到根路由"/"
+    };
+
+    if (!logged_in) {
+        return (
+            <Snackbar open={true} autoHideDuration={5000} onClose={handleSnackbarClose}>
+                <MuiAlert severity="error" onClose={handleSnackbarClose}>
+                    請先登入
+                </MuiAlert>
+            </Snackbar>
+        );
+    }
     return (
         <Box sx={{ maxWidth: 500, margin: '100px auto' }}>
             <Grid container spacing={0}>
