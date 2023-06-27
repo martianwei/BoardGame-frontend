@@ -1,32 +1,76 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Grid, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useInfo } from '../containers/hooks/useInfo';
+import { w3cwebsocket as WebSocket } from 'websocket';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
+
 const GameboardPage = () => {
     const { logged_in } = useInfo();
     const navigate = useNavigate();
+    const { room_id } = useParams();
+    const [messages, setMessages] = useState([]);
+    const [inputValue, setInputValue] = useState('');
+    const [client, setClient] = useState(null);
+    useEffect(() => {
+        if (!logged_in) {
+            navigate('/login'); // 如果未登录，将用户重定向到登录页面
+        }
 
-    const handleSnackbarClose = () => {
-        console.log('close');
-        navigate('/login'); // 如果未登入，將用戶重定向到根路由"/"
+        // 建立WebSocket连接
+        const newClient = new WebSocket('ws://localhost:8000/ws?roomID=${room_id}');
+
+        // 监听WebSocket消息
+        newClient.onmessage = (message) => {
+            const parsedMessage = JSON.parse(message.data);
+            setMessages((prevMessages) => [...prevMessages, parsedMessage]);
+        };
+
+
+        newClient.onclose = () => {
+            console.log('WebSocket disconnected');
+        };
+
+        setClient(newClient);
+
+        // 组件卸载时关闭WebSocket连接
+        return () => {
+            newClient.close();
+        };
+    }, [logged_in, navigate]);
+
+    // 发送WebSocket消息
+    const sendMessage = () => {
+        if (inputValue.trim() !== '') {
+            client.send(
+                JSON.stringify({
+                    roomID: room_id,
+                    text: inputValue,
+                })
+            );
+            setInputValue('');
+        }
     };
-
-    if (!logged_in) {
-        return (
-            <Snackbar open={true} autoHideDuration={5000} onClose={handleSnackbarClose}>
-                <MuiAlert severity="error" onClose={handleSnackbarClose}>
-                    請先登入
-                </MuiAlert>
-            </Snackbar>
-        );
-    }
     return (
         <Box sx={{ maxWidth: 500, margin: '100px auto' }}>
             <Grid container spacing={0}>
                 <Grid item xs={12}>
                     <Gameboard rows={6} columns={5} />
+                    <div>
+                        <h1>WebSocket Client</h1>
+                        <ul>
+                            {messages.map((message, index) => (
+                                <li key={index}>{message.text}</li>
+                            ))}
+                        </ul>
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                        />
+                        <button onClick={sendMessage}>Send</button>
+                    </div>
                 </Grid>
             </Grid>
         </Box>
